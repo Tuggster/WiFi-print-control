@@ -1,0 +1,17 @@
+{
+  "name": "wifi-print",
+  "version": "1.0.0",
+  "description": "Wireless printing for Marlin controlled 3d printers",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Paxton",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.16.4",
+    "serialport": "^7.1.3",
+    "serve-static": "^1.13.2"
+  }
+}

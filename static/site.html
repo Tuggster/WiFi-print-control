@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Wireless Printing Interface</title>
+
+    <style media="screen">
+      .header-inline {
+        display: inline-block;
+      }
+
+      .button-inline {
+
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Printer info</h1>
+    <h2 class="header-inline">Temperatures</h2> <button type="button" name="button" id="loadTemp" class="button-inline" onclick="getTemps(true)">Reload Temperatures</button>
+    <table id="tempTable" border="1">
+      <tr>
+        <th>Heater Name</th>
+        <th>Current Temp. (Celsius)</th>
+        <th>Target Temp.</th>
+      </tr>
+    </table>
+    <!-- <p id="nozzle">Nozzle: 211.43c</p>
+    <p id="nozzle-target">Nozzle target: 210c</p>
+    <p id="bed">Bed: 60.27c</p>
+    <p id="bed-target">Bed target: 60c</p> -->
+    <h2 class="header-inline">Print Status</h2> <button type="button" name="button" id="loadTemp" class="button-inline" onclick="getPrintStatus(true)">Reload Print Status</button>
+    <p id="printstats">Printing, 51% complete.</p>
+    <p id="sdstats">SD card inserted.</p>
+
+    <script type="text/javascript">
+      let serverIP = `192.168.1.17`;
+
+      var createCORSRequest = function(method, url) {
+        var xhr = new XMLHttpRequest();
+        if ("withCredentials" in xhr) {
+          // Most browsers.
+          xhr.open(method, url, true);
+        } else if (typeof XDomainRequest != "undefined") {
+          // IE8 & IE9
+          xhr = new XDomainRequest();
+          xhr.open(method, url);
+        } else {
+          // CORS not supported.
+          xhr = null;
+        }
+        return xhr;
+      };
+
+      let heater1 = 0;
+      let heater2 = 0;
+
+      let heaterTable = document.getElementById('tempTable');
+
+      let printStatsText = document.getElementById('printstats');
+      let sdStatsText = document.getElementById('sdstats');
+
+      window.onload = function() {
+        getTemps(false);
+        getPrintStatus(false);
+      }
+
+
+
+      function getTemps(force) {
+        let xhr;
+
+        if (force) {
+          xhr = createCORSRequest(`GET`, `/?fetch=gettemp&force=true`);
+          setTimeout(function() {
+            location.reload();
+          }, 2000);
+        } else {
+          xhr = createCORSRequest(`GET`, `/?fetch=gettemp`);
+        }
+
+        xhr.onload = function() {
+          let response = xhr.responseText;
+          let jsonSuccess = false;
+          let rjson;
+
+          try {
+            rjson = JSON.parse(response);
+            jsonSuccess = true;
+          } catch (e) {
+            jsonSuccess = false;
+            return;
+          }
+
+          if (heaterTable.rows.length >= 3) {
+            for (let i = 0; i < heaterTable.rows.length; i++) {
+              heaterTable.deleteRow(1);
+            }
+          }
+
+          let row2 = heaterTable.insertRow(1);
+          row2.insertCell().innerHTML = `Heated Bed`;
+          row2.insertCell().innerHTML = rjson[`bed`];
+          row2.insertCell().innerHTML = rjson[`bed_target`];
+
+          let row1 = heaterTable.insertRow(1);
+          row1.insertCell().innerHTML = `Nozzle`;
+          row1.insertCell().innerHTML = rjson[`hotend`];
+          row1.insertCell().innerHTML = rjson[`hotend_target`];
+
+          heater1T = parseInt(rjson[`hotend_target`]);
+          heater2T = parseInt(rjson[`bed_target`]);
+
+          heater1 = parseInt(rjson[`hotend`]);
+          heater2 = parseInt(rjson[`bed`]);
+
+        }
+        xhr.send();
+      }
+
+      function getPrintStatus(force) {
+        let xhr;
+        if (force) {
+          xhr = createCORSRequest(`GET`, `/?fetch=getprintstatus&force=true`);
+          setTimeout(function() {
+            location.reload();
+          }, 2000);
+        } else {
+          xhr = createCORSRequest(`GET`, `/?fetch=getprintstatus`);
+        }
+
+        xhr.onload = function() {
+          let response = xhr.responseText;
+          let jsonSuccess = false;
+          let rjson;
+
+          try {
+            rjson = JSON.parse(response);
+            jsonSuccess = true;
+          } catch (e) {
+            jsonSuccess = false;
+            return;
+          }
+
+          let progress = rjson[`percent`];
+          let sdStatus = rjson[`cardinserted`];
+          let percent = Math.round(progress);
+          if (isNaN(percent) || percent == null || percent == undefined || progress == 0) {
+            printStatsText.innerHTML = `Not printing.`;
+          } else {
+            printStatsText.innerHTML = `${percent}% complete.`;
+          }
+          sdStatsText.innerHTML = sdStatus ? `Card inserted` : `No card found.`;
+
+        }
+        xhr.send();
+      }
+
+
+    </script>
+  </body>
+</html>
